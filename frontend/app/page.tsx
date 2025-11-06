@@ -41,7 +41,7 @@ export default function Home() {
               onClick={handleGetSummarize}
               className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all shadow-lg hover:shadow-xl font-semibold"
             >
-              🚀 Get Started
+              Get Started
             </button>
             {isLoggedIn ? (
               <button 
@@ -61,17 +61,17 @@ export default function Home() {
         {/* Features Section */}
         <div className="mt-16 sm:mt-20 lg:mt-24 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
           <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
-            <div className="text-3xl sm:text-4xl mb-4">🤖</div>
+            <div className="text-3xl sm:text-4xl mb-4"></div>
             <h3 className="text-lg sm:text-xl font-bold mb-2 text-gray-800">AI-Powered</h3>
             <p className="text-sm sm:text-base text-gray-600">Advanced NLP models for accurate summarization</p>
           </div>
           <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
-            <div className="text-3xl sm:text-4xl mb-4">⚡</div>
+            <div className="text-3xl sm:text-4xl mb-4"></div>
             <h3 className="text-lg sm:text-xl font-bold mb-2 text-gray-800">Fast & Efficient</h3>
             <p className="text-sm sm:text-base text-gray-600">Get summaries in seconds, not minutes</p>
           </div>
           <div className="bg-white p-6 sm:p-8 rounded-xl shadow-lg hover:shadow-xl transition-shadow sm:col-span-2 lg:col-span-1">
-            <div className="text-3xl sm:text-4xl mb-4">📊</div>
+            <div className="text-3xl sm:text-4xl mb-4"></div>
             <h3 className="text-lg sm:text-xl font-bold mb-2 text-gray-800">History Tracking</h3>
             <p className="text-sm sm:text-base text-gray-600">Save and manage all your summaries</p>
           </div>
