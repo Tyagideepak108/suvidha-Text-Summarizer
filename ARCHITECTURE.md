@@ -1,149 +1,229 @@
-# Suvidha Text Summarizer - Architecture
+# 🏗️ Suvidha Text Summarizer - Architecture Documentation
 
-## System Architecture Diagram
+## 📊 System Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         USER (Browser)                          │
+│                    USER (Browser/Mobile)                        │
 └────────────────────────────┬────────────────────────────────────┘
                              │
-                             │ HTTP Request
+                             │ HTTPS
                              ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    NGINX (Port 80)                              │
-│                   Reverse Proxy                                 │
+│                    VERCEL CDN (Frontend)                        │
+│              https://suvidha-text-summarizer.vercel.app         │
+│                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐  │
-│  │  Routes:                                                  │  │
-│  │  • /          → Frontend (Next.js)                       │  │
-│  │  • /api/*     → Backend (Express)                        │  │
+│  │  Next.js 16 Application (SSR + Static)                   │  │
+│  │  • React Components                                       │  │
+│  │  • TypeScript                                            │  │
+│  │  • Tailwind CSS                                          │  │
+│  │  • NextAuth.js (OAuth)                                   │  │
 │  └──────────────────────────────────────────────────────────┘  │
-└──────────────┬─────────────────────────────┬────────────────────┘
-               │                             │
-               │                             │
-       ┌───────▼────────┐           ┌────────▼────────┐
-       │   FRONTEND     │           │    BACKEND      │
-       │   (Next.js)    │           │   (Express.js)  │
-       │   Port 3000    │◄──────────│   Port 3002     │
-       │                │   API     │                 │
-       │  • React       │  Calls    │  • REST API     │
-       │  • TypeScript  │           │  • JWT Auth     │
-       │  • Tailwind    │           │  • Middleware   │
-       └────────────────┘           └─────────┬───────┘
-                                              │
-                    ┌─────────────────────────┼─────────────────────┐
-                    │                         │                     │
-            ┌───────▼────────┐       ┌────────▼────────┐   ┌───────▼────────┐
-            │   POSTGRESQL   │       │     REDIS       │   │    BULLMQ      │
-            │   Port 5432    │       │   Port 6379     │   │    WORKER      │
-            │                │       │                 │   │                │
-            │  • Users       │       │  • Cache        │   │  • Job Queue   │
-            │  • Articles    │       │  • Sessions     │   │  • AI Process  │
-            │  • Summaries   │       │  • Job Queue    │   │  • Background  │
-            └────────────────┘       └─────────────────┘   └────────┬───────┘
-                                                                     │
-                                                                     │
-                                                            ┌────────▼────────┐
-                                                            │  HUGGING FACE   │
-                                                            │   AI Models     │
-                                                            │                 │
-                                                            │  • BART         │
-                                                            │  • DistilBART   │
-                                                            │  • Pegasus      │
-                                                            └─────────────────┘
+└──────────────┬──────────────────────────────────────────────────┘
+               │
+               │ API Calls (HTTPS)
+               ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   RENDER.COM (Backend)                          │
+│           https://suvidha-text-summarizer.onrender.com          │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐  │
+│  │  Express.js API Server                                    │  │
+│  │  • REST API Endpoints                                     │  │
+│  │  • JWT Authentication                                     │  │
+│  │  • Direct AI Summarization                               │  │
+│  │  • Sequelize ORM                                         │  │
+│  └────────────┬─────────────────────────────────────────────┘  │
+└───────────────┼──────────────────────────────────────────────────┘
+                │
+                │
+        ┌───────┴────────┬──────────────────┐
+        │                │                  │
+        ▼                ▼                  ▼
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│  POSTGRESQL  │  │ HUGGING FACE │  │   NEXTAUTH   │
+│  (Render)    │  │  Inference   │  │   (OAuth)    │
+│              │  │     API      │  │              │
+│  • Users     │  │              │  │  • Google    │
+│  • Articles  │  │  • BART      │  │  • GitHub    │
+│  • Summaries │  │  • Models    │  │              │
+└──────────────┘  └──────────────┘  └──────────────┘
 ```
 
 ---
 
-## Request Flow
+## 🔄 Request Flow Diagrams
 
-### 1. User Signup/Login Flow
+### 1️⃣ User Signup/Login Flow (Email/Password)
+
 ```
-User → Nginx → Frontend → Backend → PostgreSQL
-                                  ↓
-                              JWT Token
-                                  ↓
-                            Store in localStorage
+┌──────┐
+│ User │
+└──┬───┘
+   │ 1. Enter email/password
+   ▼
+┌────────────────┐
+│ Vercel Frontend│
+│  (Signup Page) │
+└──┬─────────────┘
+   │ 2. POST /auth/signup
+   ▼
+┌────────────────┐
+│ Render Backend │
+│  (Express API) │
+└──┬─────────────┘
+   │ 3. Hash password (bcrypt)
+   ▼
+┌────────────────┐
+│   PostgreSQL   │
+│  (Create User) │
+└──┬─────────────┘
+   │ 4. User created
+   ▼
+┌────────────────┐
+│ Generate JWT   │
+│    Token       │
+└──┬─────────────┘
+   │ 5. Return token
+   ▼
+┌────────────────┐
+│  localStorage  │
+│  Save token    │
+└────────────────┘
 ```
 
-### 2. Text Summarization Flow (Without Cache)
+### 2️⃣ OAuth Login Flow (Google/GitHub)
+
 ```
-User submits text
-    ↓
-Nginx → Backend
-    ↓
-Check Redis Cache (MISS)
-    ↓
-Create Article in PostgreSQL
-    ↓
-Add Job to BullMQ Queue
-    ↓
-Return 202 (Processing) to User
-    ↓
-Worker picks job from Queue
-    ↓
-Call Hugging Face API
-    ↓
-Save Summary to PostgreSQL
-    ↓
-Save to Redis Cache (1 hour)
-    ↓
-Frontend polls for status
-    ↓
-Display Summary to User
+┌──────┐
+│ User │
+└──┬───┘
+   │ 1. Click "Login with Google"
+   ▼
+┌────────────────┐
+│   NextAuth.js  │
+│   (Frontend)   │
+└──┬─────────────┘
+   │ 2. Redirect to Google
+   ▼
+┌────────────────┐
+│ Google OAuth   │
+│   Consent      │
+└──┬─────────────┘
+   │ 3. User approves
+   ▼
+┌────────────────┐
+│   NextAuth.js  │
+│   Callback     │
+└──┬─────────────┘
+   │ 4. POST /auth/oauth-login
+   ▼
+┌────────────────┐
+│ Render Backend │
+│ Find/Create    │
+│     User       │
+└──┬─────────────┘
+   │ 5. Return JWT token
+   ▼
+┌────────────────┐
+│  Dashboard     │
+│  Save token    │
+│  localStorage  │
+└────────────────┘
 ```
 
-### 3. Text Summarization Flow (With Cache)
+### 3️⃣ Text Summarization Flow
+
 ```
-User submits text
-    ↓
-Nginx → Backend
-    ↓
-Check Redis Cache (HIT) ⚡
-    ↓
-Return cached summary (50ms)
-    ↓
-Display to User
+┌──────┐
+│ User │
+└──┬───┘
+   │ 1. Paste text
+   ▼
+┌────────────────┐
+│ Summarize Page │
+│   (Frontend)   │
+└──┬─────────────┘
+   │ 2. POST /summaries
+   │    + JWT token
+   ▼
+┌────────────────┐
+│ Render Backend │
+│ Verify JWT     │
+└──┬─────────────┘
+   │ 3. Create Article
+   ▼
+┌────────────────┐
+│   PostgreSQL   │
+│ Save Article   │
+└──┬─────────────┘
+   │ 4. Article ID
+   ▼
+┌────────────────┐
+│ Hugging Face   │
+│  API Call      │
+│  (BART Model)  │
+└──┬─────────────┘
+   │ 5. Summary text
+   ▼
+┌────────────────┐
+│   PostgreSQL   │
+│ Save Summary   │
+└──┬─────────────┘
+   │ 6. Return summary
+   ▼
+┌────────────────┐
+│    Frontend    │
+│ Display Result │
+└────────────────┘
 ```
 
 ---
 
-## Technology Stack
+## 🛠️ Technology Stack
 
-### Frontend
-- **Framework**: Next.js 16
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **State**: React Hooks
-- **HTTP Client**: Axios
+### Frontend (Vercel)
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| Next.js | 16.0 | React framework with SSR |
+| React | 18+ | UI library |
+| TypeScript | 5+ | Type safety |
+| Tailwind CSS | 3+ | Styling |
+| NextAuth.js | 4+ | OAuth authentication |
+| Axios | 1+ | HTTP client |
 
-### Backend
-- **Framework**: Express.js
-- **Language**: Node.js
-- **Authentication**: JWT (jsonwebtoken)
-- **ORM**: Sequelize
-- **Validation**: Express middleware
+### Backend (Render)
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| Node.js | 20+ | Runtime |
+| Express.js | 4+ | Web framework |
+| Sequelize | 6+ | ORM |
+| JWT | - | Authentication |
+| bcryptjs | 2+ | Password hashing |
+| dotenv | 16+ | Environment variables |
 
-### Database
-- **Primary DB**: PostgreSQL 15
-- **Cache**: Redis 7
-- **Queue**: BullMQ (Redis-based)
+### Database (Render PostgreSQL)
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| PostgreSQL | 16 | Primary database |
+| Sequelize CLI | 6+ | Migrations |
 
 ### AI/ML
-- **Provider**: Hugging Face Inference API
-- **Models**: 
-  - facebook/bart-large-cnn (primary)
-  - sshleifer/distilbart-cnn-12-6 (fallback)
-  - google/pegasus-xsum (fallback)
+| Service | Model | Purpose |
+|---------|-------|---------|
+| Hugging Face | facebook/bart-large-cnn | Text summarization |
 
-### DevOps
-- **Containerization**: Docker
-- **Orchestration**: Docker Compose
-- **Reverse Proxy**: Nginx
-- **Environment**: WSL2 (Windows)
+### Deployment
+| Platform | Service | URL |
+|----------|---------|-----|
+| Vercel | Frontend | https://suvidha-text-summarizer.vercel.app |
+| Render | Backend | https://suvidha-text-summarizer.onrender.com |
+| Render | PostgreSQL | Internal connection |
 
 ---
 
-## Database Schema
+## 💾 Database Schema
 
 ### Users Table
 ```sql
@@ -151,9 +231,12 @@ CREATE TABLE "Users" (
   id SERIAL PRIMARY KEY,
   email VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
-  createdAt TIMESTAMP,
-  updatedAt TIMESTAMP
+  createdAt TIMESTAMP DEFAULT NOW(),
+  updatedAt TIMESTAMP DEFAULT NOW()
 );
+
+-- Indexes
+CREATE INDEX idx_users_email ON "Users"(email);
 ```
 
 ### Articles Table
@@ -161,10 +244,13 @@ CREATE TABLE "Users" (
 CREATE TABLE "Articles" (
   id SERIAL PRIMARY KEY,
   original_text TEXT NOT NULL,
-  userId INTEGER REFERENCES "Users"(id),
-  createdAt TIMESTAMP,
-  updatedAt TIMESTAMP
+  userId INTEGER REFERENCES "Users"(id) ON DELETE CASCADE,
+  createdAt TIMESTAMP DEFAULT NOW(),
+  updatedAt TIMESTAMP DEFAULT NOW()
 );
+
+-- Indexes
+CREATE INDEX idx_articles_userId ON "Articles"(userId);
 ```
 
 ### Summaries Table
@@ -172,172 +258,432 @@ CREATE TABLE "Articles" (
 CREATE TABLE "Summaries" (
   id SERIAL PRIMARY KEY,
   summary_text TEXT NOT NULL,
-  articleId INTEGER REFERENCES "Articles"(id),
-  userId INTEGER REFERENCES "Users"(id),
-  createdAt TIMESTAMP,
-  updatedAt TIMESTAMP
+  articleId INTEGER REFERENCES "Articles"(id) ON DELETE CASCADE,
+  userId INTEGER REFERENCES "Users"(id) ON DELETE CASCADE,
+  createdAt TIMESTAMP DEFAULT NOW(),
+  updatedAt TIMESTAMP DEFAULT NOW()
 );
+
+-- Indexes
+CREATE INDEX idx_summaries_userId ON "Summaries"(userId);
+CREATE INDEX idx_summaries_articleId ON "Summaries"(articleId);
+```
+
+### Relationships
+```
+Users (1) ──────< (N) Articles
+Users (1) ──────< (N) Summaries
+Articles (1) ────< (N) Summaries
 ```
 
 ---
 
-## API Endpoints
+## 🔌 API Endpoints
 
-### Authentication
+### Authentication Endpoints
+
+#### POST /auth/signup
+**Request:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
 ```
-POST /api/auth/signup
-POST /api/auth/login
+**Response:**
+```json
+{
+  "message": "User created successfully!",
+  "userId": 1
+}
 ```
 
-### Summaries
+#### POST /auth/login
+**Request:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
 ```
-POST /api/summaries              (Create summary - returns jobId)
-GET  /api/summaries/job/:jobId   (Check job status)
-GET  /api/summaries              (Get user's summaries)
+**Response:**
+```json
+{
+  "message": "Login successful!",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "userId": 1
+}
 ```
 
-### Health Check
+#### POST /auth/oauth-login
+**Request:**
+```json
+{
+  "email": "user@gmail.com",
+  "name": "User Name"
+}
 ```
-GET /api/health
-GET /api/db-test
+**Response:**
+```json
+{
+  "message": "OAuth login successful!",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "userId": 1
+}
+```
+
+### Summary Endpoints
+
+#### POST /summaries
+**Headers:**
+```
+Authorization: Bearer <JWT_TOKEN>
+```
+**Request:**
+```json
+{
+  "original_text": "Long text to summarize..."
+}
+```
+**Response:**
+```json
+{
+  "message": "Summary generated successfully!",
+  "summary": {
+    "id": 1,
+    "summary_text": "Concise summary...",
+    "articleId": 1,
+    "original_text": "Long text..."
+  }
+}
+```
+
+#### GET /summaries
+**Headers:**
+```
+Authorization: Bearer <JWT_TOKEN>
+```
+**Response:**
+```json
+{
+  "summaries": [
+    {
+      "id": 1,
+      "summary_text": "Summary...",
+      "createdAt": "2024-11-06T10:00:00Z",
+      "Article": {
+        "original_text": "Original..."
+      }
+    }
+  ]
+}
+```
+
+#### DELETE /summaries/:id
+**Headers:**
+```
+Authorization: Bearer <JWT_TOKEN>
+```
+**Response:**
+```json
+{
+  "message": "Summary deleted successfully!"
+}
+```
+
+### Health Check Endpoints
+
+#### GET /health
+**Response:**
+```json
+{
+  "status": "OK",
+  "message": "Backend is running!"
+}
+```
+
+#### GET /db-test
+**Response:**
+```json
+{
+  "status": "OK",
+  "message": "Database connected!"
+}
 ```
 
 ---
 
-## Docker Services
+## 🔐 Security Implementation
 
-### 1. PostgreSQL
-- **Image**: postgres:15-alpine
-- **Port**: 5432
-- **Volume**: postgres_data
-- **Health Check**: pg_isready
+### 1. Authentication
+- **JWT Tokens**: 24-hour expiry
+- **Password Hashing**: bcrypt with 10 salt rounds
+- **Token Storage**: localStorage (client-side)
 
-### 2. Redis
-- **Image**: redis:7-alpine
-- **Port**: 6379
-- **Volume**: redis_data
-- **Health Check**: redis-cli ping
+### 2. Authorization
+- **Middleware**: JWT verification on protected routes
+- **User Isolation**: Users can only access their own data
 
-### 3. Backend
-- **Build**: ./backend/Dockerfile
-- **Port**: 3002
-- **Depends**: postgres, redis
-- **Environment**: NODE_ENV=docker
+### 3. Data Protection
+- **Environment Variables**: Sensitive data in .env
+- **HTTPS**: All production traffic encrypted
+- **CORS**: Configured for frontend domain only
 
-### 4. Worker
-- **Build**: ./backend/Dockerfile
-- **Command**: node workers/summarizationWorker.js
-- **Depends**: postgres, redis
-
-### 5. Frontend
-- **Build**: ./frontend/Dockerfile
-- **Port**: 3000
-- **Depends**: backend
-
-### 6. Nginx
-- **Image**: nginx:alpine
-- **Port**: 80
-- **Config**: ./nginx/nginx.conf
-- **Depends**: frontend, backend
+### 4. Database Security
+- **SQL Injection**: Prevented by Sequelize ORM
+- **Foreign Keys**: Cascade delete for data integrity
+- **SSL**: PostgreSQL connection encrypted
 
 ---
 
-## Security Features
+## 📁 Project Structure
 
-1. ✅ **JWT Authentication** - Secure token-based auth
-2. ✅ **Password Hashing** - bcrypt (10 rounds)
-3. ✅ **Environment Variables** - Sensitive data in .env
-4. ✅ **CORS** - Configured for security
-5. ✅ **Input Validation** - Request body validation
-6. ✅ **SQL Injection Prevention** - Sequelize ORM
+```
+suvidha-text-summarizer/
+├── frontend/                    # Next.js Frontend
+│   ├── app/                    # App Router
+│   │   ├── api/               # API routes
+│   │   │   └── auth/          # NextAuth
+│   │   ├── dashboard/         # Dashboard page
+│   │   ├── history/           # History page
+│   │   ├── login/             # Login page
+│   │   ├── signup/            # Signup page
+│   │   ├── summarize/         # Summarize page
+│   │   ├── layout.tsx         # Root layout
+│   │   └── page.tsx           # Home page
+│   ├── components/            # React components
+│   │   └── Navbar.tsx         # Navigation bar
+│   ├── lib/                   # Utilities
+│   │   └── axios.ts           # Axios config
+│   ├── services/              # API services
+│   │   └── authService.ts     # Auth API calls
+│   ├── public/                # Static files
+│   ├── .env.local             # Environment variables
+│   ├── package.json           # Dependencies
+│   └── tailwind.config.js     # Tailwind config
+│
+├── backend/                    # Express.js Backend
+│   ├── config/                # Configuration
+│   │   ├── config.json        # Database config
+│   │   ├── queue.js           # Queue config (disabled)
+│   │   └── redis.js           # Redis config (disabled)
+│   ├── middleware/            # Express middleware
+│   │   ├── auth.js            # JWT verification
+│   │   └── cache.js           # Cache middleware (disabled)
+│   ├── migrations/            # Database migrations
+│   │   ├── *-create-user.js
+│   │   ├── *-create-article.js
+│   │   └── *-create-summary.js
+│   ├── models/                # Sequelize models
+│   │   ├── index.js           # Model loader
+│   │   ├── user.js            # User model
+│   │   ├── article.js         # Article model
+│   │   └── summary.js         # Summary model
+│   ├── routes/                # API routes
+│   │   ├── auth.js            # Auth endpoints
+│   │   └── summaries.js       # Summary endpoints
+│   ├── workers/               # Background workers (disabled)
+│   │   └── summarizationWorker.js
+│   ├── .env                   # Environment variables
+│   ├── index.js               # Entry point
+│   └── package.json           # Dependencies
+│
+├── .gitignore                 # Git ignore rules
+├── README.md                  # Project documentation
+└── ARCHITECTURE.md            # This file
+```
 
 ---
 
-## Performance Optimizations
+## 🚀 Deployment Architecture
 
-1. ✅ **Redis Caching** - 1 hour TTL
-2. ✅ **Background Jobs** - Async processing
-3. ✅ **Connection Pooling** - Database connections
-4. ✅ **Docker Multi-stage Builds** - Smaller images
-5. ✅ **Nginx Reverse Proxy** - Load balancing ready
+### Vercel (Frontend)
+```
+GitHub Push
+    ↓
+Vercel Auto-Deploy
+    ↓
+Build Next.js App
+    ↓
+Deploy to CDN
+    ↓
+Live at: suvidha-text-summarizer.vercel.app
+```
+
+**Environment Variables:**
+- `NEXT_PUBLIC_API_URL`
+- `NEXTAUTH_URL`
+- `NEXTAUTH_SECRET`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `GITHUB_CLIENT_ID`
+- `GITHUB_CLIENT_SECRET`
+
+### Render (Backend)
+```
+GitHub Push
+    ↓
+Render Auto-Deploy
+    ↓
+Run Migrations (npx sequelize-cli db:migrate)
+    ↓
+Start Server (node index.js)
+    ↓
+Live at: suvidha-text-summarizer.onrender.com
+```
+
+**Environment Variables:**
+- `PORT`
+- `NODE_ENV`
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `HUGGINGFACE_API_KEY`
+
+### Render (PostgreSQL)
+```
+Managed PostgreSQL Instance
+    ↓
+Automatic Backups
+    ↓
+Internal Connection
+    ↓
+Connected to Backend
+```
 
 ---
 
-## Scalability Considerations
+## ⚡ Performance Optimizations
 
-### Horizontal Scaling
-- Multiple backend instances behind Nginx
-- Multiple worker instances for job processing
-- Redis cluster for distributed caching
+### Frontend
+1. ✅ **Static Generation**: Next.js pre-renders pages
+2. ✅ **Code Splitting**: Automatic route-based splitting
+3. ✅ **Image Optimization**: Next.js Image component
+4. ✅ **CDN Delivery**: Vercel global CDN
 
-### Vertical Scaling
-- Increase container resources
-- Database connection pool size
-- Worker concurrency settings
+### Backend
+1. ✅ **Direct Summarization**: No queue overhead
+2. ✅ **Database Indexing**: Fast queries
+3. ✅ **Connection Pooling**: Sequelize manages connections
+4. ✅ **JWT Stateless Auth**: No session storage needed
+
+### Database
+1. ✅ **Indexes**: On foreign keys and email
+2. ✅ **Cascade Delete**: Automatic cleanup
+3. ✅ **Connection Pooling**: Efficient resource usage
 
 ---
 
-## Monitoring & Logging
+## 📊 Monitoring & Logging
 
 ### Current Implementation
-- Console logs for all services
-- Docker logs accessible via `docker-compose logs`
-- Job status tracking in BullMQ
+- **Render Logs**: Real-time backend logs
+- **Vercel Logs**: Frontend build and runtime logs
+- **Database Logs**: PostgreSQL query logs
+- **Console Logging**: Structured logs in backend
 
-### Future Enhancements
-- Prometheus metrics
-- Grafana dashboards
-- ELK stack for log aggregation
-- Sentry for error tracking
-
----
-
-## Deployment Strategy
-
-### Development
-```bash
-docker-compose up
-```
-
-### Production
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### CI/CD Pipeline (Future)
-1. GitHub Actions
-2. Automated testing
-3. Docker image build
-4. Push to registry
-5. Deploy to cloud (AWS/Azure/GCP)
+### Metrics Tracked
+- API response times
+- Database query execution
+- Authentication success/failure
+- Summary generation time
+- Error rates
 
 ---
 
-## Cost Optimization
+## 🔄 CI/CD Pipeline
 
-1. ✅ **Redis Caching** - Reduces API calls
-2. ✅ **Background Jobs** - Efficient resource usage
-3. ✅ **Docker** - Resource isolation
-4. ✅ **Model Fallback** - Availability guarantee
+### Automatic Deployment
+```
+Developer Push to GitHub
+    ↓
+GitHub Webhook Triggers
+    ↓
+┌─────────────────┬─────────────────┐
+│                 │                 │
+▼                 ▼                 ▼
+Vercel Deploy     Render Deploy     
+(Frontend)        (Backend)         
+    ↓                 ↓             
+Build & Test      Migrations        
+    ↓                 ↓             
+Deploy to CDN     Start Server      
+    ↓                 ↓             
+✅ Live           ✅ Live           
+```
 
 ---
 
-## Backup & Recovery
+## 🛡️ Error Handling
 
-### Database Backups
-```bash
-docker-compose exec postgres pg_dump -U postgres suvidha_db > backup.sql
-```
+### Frontend
+- Try-catch blocks for API calls
+- User-friendly error messages
+- Redirect to login on 401
+- Loading states for async operations
 
-### Restore
-```bash
-docker-compose exec -T postgres psql -U postgres suvidha_db < backup.sql
-```
-
-### Volume Backups
-- Docker volumes persist data
-- Regular snapshots recommended
+### Backend
+- Global error handler middleware
+- Structured error responses
+- Database transaction rollback
+- Graceful degradation
 
 ---
 
-**Architecture designed for scalability, performance, and maintainability!** 🚀
+## 📈 Scalability Considerations
+
+### Current Capacity
+- **Users**: Unlimited (stateless JWT)
+- **Requests**: Render free tier limits
+- **Database**: 1GB storage (Render free tier)
+- **AI API**: Hugging Face rate limits
+
+### Scaling Strategy
+1. **Horizontal Scaling**: Add more Render instances
+2. **Database Upgrade**: Increase PostgreSQL tier
+3. **CDN**: Already global (Vercel)
+4. **Caching**: Add Redis for future optimization
+
+---
+
+## 🔮 Future Enhancements
+
+### Planned Features
+- [ ] Redis caching for faster responses
+- [ ] Background job queue (BullMQ)
+- [ ] PDF/Document upload support
+- [ ] Summary export (PDF, Word)
+- [ ] Advanced analytics dashboard
+- [ ] Multi-language support
+- [ ] Custom summary length
+- [ ] Batch processing
+- [ ] API rate limiting
+- [ ] User roles & permissions
+
+### Infrastructure Improvements
+- [ ] Prometheus + Grafana monitoring
+- [ ] ELK stack for log aggregation
+- [ ] Sentry for error tracking
+- [ ] Automated testing (Jest, Cypress)
+- [ ] Load balancing
+- [ ] Database replication
+
+---
+
+## 📞 Support & Maintenance
+
+### Backup Strategy
+- **Database**: Render automatic daily backups
+- **Code**: GitHub repository
+- **Environment**: Documented in .env.example
+
+### Disaster Recovery
+1. Restore database from Render backup
+2. Redeploy from GitHub
+3. Update environment variables
+4. Run migrations if needed
+
+---
+
+**Architecture designed for production deployment with scalability in mind!** 🚀
+
+*Last Updated: November 6, 2024*
