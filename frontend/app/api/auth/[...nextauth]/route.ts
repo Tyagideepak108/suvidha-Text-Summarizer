@@ -31,8 +31,8 @@ const handler = NextAuth({
           });
           const data = await response.json();
           if (data.token) {
-            user.backendToken = data.token;
-            user.userId = data.userId;
+            (user as any).backendToken = data.token;
+            (user as any).userId = data.userId;
           }
         } catch (error) {
           console.error('OAuth backend login failed:', error);
@@ -42,16 +42,18 @@ const handler = NextAuth({
     },
     async jwt({ token, user }) {
       if (user) {
-        token.backendToken = user.backendToken;
-        token.userId = user.userId;
+        token.backendToken = (user as any).backendToken;
+        token.userId = (user as any).userId;
         token.email = user.email;
       }
       return token;
     },
     async session({ session, token }) {
-      session.backendToken = token.backendToken;
-      session.userId = token.userId;
-      session.user.email = token.email;
+      (session as any).backendToken = (token as any).backendToken;
+      (session as any).userId = (token as any).userId;
+      if (session.user) {
+        session.user.email = token.email as string;
+      }
       return session;
     },
   },
