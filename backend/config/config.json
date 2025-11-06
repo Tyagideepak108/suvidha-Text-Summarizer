@@ -1,0 +1,26 @@
+{
+  "development": {
+    "username": "postgres",
+    "password": "postgres",
+    "database": "suvidha_db",
+    "host": "127.0.0.1",
+    "port": 5432,
+    "dialect": "postgres"
+  },
+  "docker": {
+    "username": "postgres",
+    "password": "postgres",
+    "database": "suvidha_db",
+    "host": "postgres",
+    "port": 5432,
+    "dialect": "postgres"
+  },
+  "production": {
+    "username": "postgres",
+    "password": "postgres",
+    "database": "suvidha_db",
+    "host": "postgres",
+    "port": 5432,
+    "dialect": "postgres"
+  }
+}
