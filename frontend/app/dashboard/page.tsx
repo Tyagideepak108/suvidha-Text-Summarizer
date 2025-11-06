@@ -10,42 +10,22 @@ export default function Dashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const fetchOAuthToken = async () => {
-      if (status === 'authenticated' && session?.user?.email) {
-        const existingToken = localStorage.getItem('token');
-        if (!existingToken) {
-          try {
-            const response = await fetch('http://localhost:3002/auth/oauth-login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                email: session.user.email,
-                name: session.user.name
-              })
-            });
-            
-            const data = await response.json();
-            if (data.token) {
-              localStorage.setItem('token', data.token);
-              localStorage.setItem('userId', data.userId);
-              localStorage.setItem('userEmail', session.user.email);
-            }
-          } catch (error) {
-            console.error('OAuth token fetch error:', error);
-          }
-        }
-        setIsAuthenticated(true);
-      } else {
-        const token = localStorage.getItem('token');
-        if (token) {
-          setIsAuthenticated(true);
-        } else if (status === 'unauthenticated') {
-          router.push('/login');
-        }
+    if (status === 'authenticated' && session) {
+      // Store OAuth token from session
+      if (session.backendToken) {
+        localStorage.setItem('token', session.backendToken);
+        localStorage.setItem('userId', session.userId || '');
+        localStorage.setItem('userEmail', session.user?.email || '');
       }
-    };
-    
-    fetchOAuthToken();
+      setIsAuthenticated(true);
+    } else {
+      const token = localStorage.getItem('token');
+      if (token) {
+        setIsAuthenticated(true);
+      } else if (status === 'unauthenticated') {
+        router.push('/login');
+      }
+    }
   }, [status, session, router]);
 
   const handleLogout = () => {
