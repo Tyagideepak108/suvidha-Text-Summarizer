@@ -1,11 +1,17 @@
 # 📝 Suvidha Text Summarizer
 
-AI-powered text summarization application built with Next.js, Express.js, PostgreSQL, and Redis. Generate concise summaries of long texts using advanced NLP models.
+AI-powered text summarization application built with Next.js, Express.js, and PostgreSQL. Generate concise summaries of long texts using advanced NLP models.
 
 ![Next.js](https://img.shields.io/badge/Next.js-16.0-black)
 ![Node.js](https://img.shields.io/badge/Node.js-20+-green)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)
-![Redis](https://img.shields.io/badge/Redis-7-red)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
+![Deployed](https://img.shields.io/badge/Status-Live-success)
+
+## 🌐 Live Demo
+
+**Frontend:** [https://suvidha-text-summarizer.vercel.app](https://suvidha-text-summarizer.vercel.app)
+
+**Backend API:** [https://suvidha-text-summarizer.onrender.com](https://suvidha-text-summarizer.onrender.com)
 
 ## ✨ Features
 
@@ -14,7 +20,7 @@ AI-powered text summarization application built with Next.js, Express.js, Postgr
 - 👤 **User Profile** - Avatar with first letter of email, personalized dashboard
 - 📊 **Summary History** - View and manage all your past summaries
 - 🗑️ **Delete Summaries** - Remove unwanted summaries with confirmation
-- ⚡ **Fast Processing** - Direct summarization with optional Redis caching
+- ⚡ **Fast Processing** - Direct AI-powered summarization
 - 🎨 **Modern UI** - Clean, responsive design with Tailwind CSS
 - ✅ **Form Validation** - Email format and password strength validation
 - 🔄 **Real-time Updates** - Instant feedback on all operations
@@ -49,17 +55,15 @@ suvidha-text-summarizer/
 ### Backend
 - **Runtime:** Node.js 20+
 - **Framework:** Express.js
-- **Database:** PostgreSQL 15
+- **Database:** PostgreSQL 16
 - **ORM:** Sequelize
-- **Cache:** Redis 7
-- **Queue:** BullMQ
-- **AI Model:** Hugging Face Inference API
+- **AI Model:** Hugging Face Inference API (BART)
+- **Deployment:** Render.com
 
 ## 📋 Prerequisites
 
 - Node.js 20 or higher
-- PostgreSQL 15
-- Redis 7
+- PostgreSQL 16
 - Hugging Face API Key
 - Git
 
@@ -88,8 +92,6 @@ POSTGRES_PASSWORD=postgres123
 POSTGRES_DB=suvidha_db
 DB_HOST=localhost
 DB_PORT=5432
-REDIS_HOST=localhost
-REDIS_PORT=6379
 EOF
 
 # Run migrations
@@ -133,13 +135,7 @@ CREATE DATABASE suvidha_db;
 \q
 ```
 
-### 5. Redis Setup
 
-```bash
-# Start Redis
-# Windows: redis-server
-# Linux/Mac: sudo service redis-server start
-```
 
 ## 🐳 Docker Setup
 
@@ -175,8 +171,6 @@ POSTGRES_PASSWORD=password
 POSTGRES_DB=suvidha_db
 DB_HOST=localhost
 DB_PORT=5432
-REDIS_HOST=localhost
-REDIS_PORT=6379
 ```
 
 ### Frontend (.env.local)
@@ -207,8 +201,12 @@ Add environment variables in Vercel dashboard.
 2. Set root directory: `backend`
 3. Build command: `npm install`
 4. Start command: `node index.js`
-5. Add environment variables
-6. Add PostgreSQL and Redis add-ons
+5. Add PostgreSQL database
+6. Configure environment variables:
+   - `PORT=3002`
+   - `HUGGINGFACE_API_KEY`
+   - `JWT_SECRET`
+   - `DATABASE_URL` (from PostgreSQL addon)
 
 ## 📚 API Endpoints
 
@@ -221,7 +219,7 @@ Add environment variables in Vercel dashboard.
 - `POST /summaries` - Generate summary
 - `GET /summaries` - Get all summaries
 - `DELETE /summaries/:id` - Delete summary
-- `GET /summaries/job/:jobId` - Get job status
+
 
 ## 🧪 Testing
 
@@ -265,6 +263,7 @@ For support, email tyagideepak1007@gmail.com or create an issue.
 
 ## 🔮 Future Enhancements
 
+- [ ] Redis caching for faster responses
 - [ ] Multiple language support
 - [ ] PDF/Document upload
 - [ ] Summary export (PDF, Word)
@@ -275,6 +274,7 @@ For support, email tyagideepak1007@gmail.com or create an issue.
 - [ ] API rate limiting
 - [ ] User roles & permissions
 - [ ] Dark mode
+- [ ] Google & GitHub OAuth integration
 
 ---
 
