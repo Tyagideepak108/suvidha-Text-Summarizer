@@ -16,29 +16,40 @@ router.post('/', authenticateToken, async (req, res) => {
     const { original_text } = req.body;
     const userId = req.user.userId;
 
+    console.log('Received summarization request from user:', userId);
+    console.log('Text length:', original_text?.length);
+
     if (!original_text) {
       return res.status(400).json({ message: 'Original text is required!' });
     }
 
+    console.log('Creating article...');
     const article = await Article.create({ original_text, userId });
+    console.log('Article created with ID:', article.id);
 
+    console.log('Calling Hugging Face API...');
     const result = await hf.summarization({
       model: 'facebook/bart-large-cnn',
       inputs: original_text,
       parameters: { max_length: 150, min_length: 30 }
     });
+    console.log('Hugging Face response:', result);
 
+    console.log('Creating summary...');
     const summary = await Summary.create({
       summary_text: result.summary_text,
       articleId: article.id,
       userId
     });
+    console.log('Summary created with ID:', summary.id);
 
     res.status(200).json({
       message: 'Summary created successfully!',
       summary
     });
   } catch (error) {
+    console.error('Error in /summaries POST:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ message: 'Failed to create summary!', error: error.message });
   }
 });

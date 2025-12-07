@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import './dashboard.css';
 
 export default function Dashboard() {
   const { data: session, status } = useSession();
@@ -59,36 +60,36 @@ export default function Dashboard() {
   };
 
   if (status === 'loading' || !isAuthenticated) {
-    return <div className="text-center mt-16">Loading...</div>;
+    return <div className="dashboard-loading">Loading...</div>;
   }
 
-  const userEmail = session?.user?.email || localStorage.getItem('userId') || 'User';
+  const userEmail = session?.user?.email || localStorage.getItem('userEmail') || 'User';
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+    <div className="dashboard-container">
+      <div className="dashboard-header">
+        <h1 className="dashboard-title">Dashboard</h1>
         <button
           onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded"
+          className="dashboard-logout-btn"
         >
           Logout
         </button>
       </div>
 
-      <div className="bg-white shadow-md rounded p-6">
-        <h2 className="text-xl font-bold mb-4">Welcome, {userEmail}!</h2>
-        <p className="text-gray-600 mb-4">
+      <div className="dashboard-card">
+        <h2 className="dashboard-welcome">Welcome, {userEmail}!</h2>
+        <p className="dashboard-auth-info">
           You are logged in via {session ? 'OAuth' : 'Email/Password'}
         </p>
-        <div className="bg-blue-50 border border-blue-200 rounded p-4">
-          <h3 className="font-bold mb-2">Text Summarizer</h3>
-          <p className="text-gray-600 mb-4">
+        <div className="dashboard-feature">
+          <h3 className="dashboard-feature-title">Snap News Summarizer</h3>
+          <p className="dashboard-feature-desc">
             Start summarizing your text with AI-powered technology.
           </p>
           <a
             href="/summarize"
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded"
+            className="dashboard-feature-btn"
           >
             Go to Summarizer
           </a>

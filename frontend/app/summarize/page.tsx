@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { summaryService } from '@/services/summaryService';
+import './summarize.css';
 
 export default function Summarize() {
   const [text, setText] = useState('');
@@ -11,7 +12,14 @@ export default function Summarize() {
   const [error, setError] = useState('');
   const router = useRouter();
 
-  // Token check removed - NextAuth handles authentication
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    console.log('Token from localStorage:', token);
+    if (!token) {
+      console.log('No token found, redirecting to login');
+      router.push('/login');
+    }
+  }, [router]);
 
   const pollJobStatus = async (jobId: string) => {
     const maxAttempts = 60;
@@ -62,58 +70,59 @@ export default function Summarize() {
     setSummary('');
 
     try {
+      console.log('Sending request to create summary...');
       const result = await summaryService.createSummary(text);
+      console.log('Result:', result);
       
       if (result.summary) {
         setSummary(result.summary.summary_text);
       }
       setLoading(false);
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to generate summary');
+      console.error('Error creating summary:', err);
+      console.error('Error response:', err.response);
+      const errorMsg = err.response?.data?.message || err.message || 'Failed to generate summary';
+      setError(errorMsg);
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Text Summarizer</h1>
+    <div className="summarize-container">
+      <h1 className="summarize-title">Snap News Summarizer</h1>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Input Text Area */}
+      <form onSubmit={handleSubmit} className="summarize-form">
         <div>
-          <label className="block text-gray-700 text-sm font-bold mb-2">
+          <label className="summarize-field-label">
             Enter Text to Summarize
           </label>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
-            className="w-full h-64 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="summarize-textarea"
             placeholder="Paste your long text here..."
             disabled={loading}
           />
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="summarize-char-count">
             {text.length} characters
           </p>
         </div>
 
-        {/* Error Message */}
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <div className="summarize-error">
             {error}
           </div>
         )}
 
-        {/* Submit Button */}
         <button
           type="submit"
           disabled={loading || !text.trim()}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center"
+          className="summarize-submit"
         >
           {loading ? (
             <>
-              {/* Loading Spinner */}
               <svg
-                className="animate-spin h-5 w-5 mr-3 text-white"
+                className="summarize-spinner"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -140,11 +149,10 @@ export default function Summarize() {
         </button>
       </form>
 
-      {/* Summary Result */}
       {summary && (
-        <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6">
-          <h2 className="text-xl font-bold text-green-800 mb-4">Summary</h2>
-          <p className="text-gray-700 leading-relaxed">{summary}</p>
+        <div className="summarize-result">
+          <h2 className="summarize-result-title">Summary</h2>
+          <p className="summarize-result-text">{summary}</p>
         </div>
       )}
     </div>

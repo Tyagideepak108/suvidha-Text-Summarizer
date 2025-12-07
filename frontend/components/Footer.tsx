@@ -1,8 +1,10 @@
+import './footer.css';
+
 export default function Footer() {
   return (
-    <footer className="bg-gray-800 text-white py-6 mt-auto">
-      <div className="max-w-7xl mx-auto px-4 text-center">
-        <p>&copy; 2024 Suvidha Text Summarizer Made by Deepak Tyagi. All rights reserved.</p>
+    <footer className="footer">
+      <div className="footer-container">
+        <p className="footer-text">&copy; 2026 Snap News Made by Deepak Tyagi. All rights reserved.</p>
       </div>
     </footer>
   );
