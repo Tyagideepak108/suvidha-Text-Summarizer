@@ -23,17 +23,34 @@ router.post('/', authenticateToken, async (req, res) => {
       return res.status(400).json({ message: 'Original text is required!' });
     }
 
+    if (original_text.length < 100) {
+      return res.status(400).json({ message: 'Text must be at least 100 characters long for summarization!' });
+    }
+
     console.log('Creating article...');
     const article = await Article.create({ original_text, userId });
     console.log('Article created with ID:', article.id);
 
     console.log('Calling Hugging Face API...');
-    const result = await hf.summarization({
-      model: 'facebook/bart-large-cnn',
-      inputs: original_text,
-      parameters: { max_length: 150, min_length: 30 }
-    });
-    console.log('Hugging Face response:', result);
+    let result;
+    let retries = 3;
+    
+    while (retries > 0) {
+      try {
+        result = await hf.summarization({
+          model: 'facebook/bart-large-cnn',
+          inputs: original_text,
+          parameters: { max_length: 150, min_length: 30 }
+        });
+        console.log('Hugging Face response:', result);
+        break;
+      } catch (apiError) {
+        retries--;
+        console.log(`API call failed, retries left: ${retries}`);
+        if (retries === 0) throw apiError;
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
 
     console.log('Creating summary...');
     const summary = await Summary.create({

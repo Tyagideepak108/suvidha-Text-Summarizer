@@ -9,6 +9,7 @@ export default function Dashboard() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState('User');
 
   useEffect(() => {
     const handleOAuthToken = async () => {
@@ -16,7 +17,6 @@ export default function Dashboard() {
         const existingToken = localStorage.getItem('token');
         
         if (!existingToken) {
-          // Fetch token from backend for OAuth users
           try {
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/oauth-login`, {
               method: 'POST',
@@ -39,10 +39,13 @@ export default function Dashboard() {
             console.error('OAuth token fetch failed:', error);
           }
         }
+        setUserEmail(session.user.email);
         setIsAuthenticated(true);
       } else {
         const token = localStorage.getItem('token');
         if (token) {
+          const storedEmail = localStorage.getItem('userEmail');
+          if (storedEmail) setUserEmail(storedEmail);
           setIsAuthenticated(true);
         } else if (status === 'unauthenticated') {
           router.push('/login');
@@ -56,14 +59,13 @@ export default function Dashboard() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userId');
+    localStorage.removeItem('userEmail');
     signOut({ callbackUrl: '/login' });
   };
 
   if (status === 'loading' || !isAuthenticated) {
     return <div className="dashboard-loading">Loading...</div>;
   }
-
-  const userEmail = session?.user?.email || localStorage.getItem('userEmail') || 'User';
 
   return (
     <div className="dashboard-container">
